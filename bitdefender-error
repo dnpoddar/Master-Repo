@@ -1,0 +1,2289 @@
+try {
+
+var chopTextArea = function(e, maxCharLen) {
+
+	function setPos(e, selStart) {
+		 if (e.setSelectionRange) {
+		 	e.focus();
+		 	e.setSelectionRange(selStart, selStart);
+		 } else if (e.createTextRange) {
+		 	var range = e.createTextRange();
+		 	range.collapse(true);
+		 	range.moveEnd('character', selStart);
+		 	range.moveStart('character', selStart);
+		 	range.select();
+		 }
+
+	}
+
+	var pos = 0;
+	try {
+		pos = e['selectionStart'];
+	} catch (ex) {
+		//print_r(ex);
+	}
+
+	var value = e.value.replace("\b", "").trim();
+	var len = value.length;
+	if (maxCharLen) {
+		if (len > maxCharLen) {
+			len = Math.min(maxCharLen, len);
+			e.value = value.substring(0, len);
+			print_r(pos);
+			pos = Math.min(pos, len);
+			setPos(e, pos);
+		}
+	}
+
+	var cntObj = $(e.id + "Count");
+	if (cntObj) {
+		cntObj.innerHTML = maxCharLen - len;
+		if(maxCharLen <= len) {
+			cntObj.innerHTML = " (No characters remaining)";
+			cntObj.addClass('errorSelectClassFont');
+		} else {
+			cntObj.removeClass('errorSelectClassFont');
+		}
+	}
+	return len;
+};
+
+var toJSON = ( function ( ) {
+
+	var escape = function (value) {
+		var ret = "";
+		var tmp;
+		for (var i = 0; i < value.length; i++) {
+			tmp = value.substring(i, i+1);
+			switch (tmp)
+			{
+				case "\"": ret += "\\\""; break;
+				case "\\": ret += "\\\\"; break;
+				case "\n": ret += "\\n"; break;
+				case "\t": ret += "\\t"; break;
+				case "\r": ret += "\\r"; break;
+				default: ret += tmp;
+			}
+		}
+		return ret;
+	};
+
+	return function ( data ) {
+		switch ( $type(data) ) {
+			case "number":
+				return data;
+				break;
+			case "string":
+				return '"' + escape(data) + '"';
+				break;
+			case "boolean":
+				return data ? "true" : "false";
+				break;
+			case "array":
+				var a = [];
+				for ( var i = 0; i < data.length; i ++ ) {
+					a.push ( toJSON ( data[i] ) );
+				}
+				return "[ " + a.join ( ", " ) + " ]";
+				break;
+			case "date":
+				return toJSON ( data.toUTCString() );
+				break;
+			case "object":
+				var a = [];
+				for (var e in data ) {
+					var line = toJSON ( e ) + " : " + toJSON ( data[e] );
+					a.push ( line );
+				}
+				return "{ " + a.join ( ", " ) + " }";
+				break;
+			case "null":
+			default:
+				return $type(data);
+				break;
+		}
+	};
+
+} )();
+
+function elogPrim(e, rd, listFunctions)
+{
+	var ret = "";
+	var tmp = "";
+	var prefix = "";
+	switch ($type(e))
+	{
+	case "object":
+		for (var i in e) {
+			prefix = i + "=>";
+			switch (e[i]) {
+			case null: tmp = "null"; break;
+			case false: tmp = "false"; break;
+			case true: tmp = "true"; break;
+			default:
+				switch ($type(e[i])) {
+				case "function": tmp = i; prefix = ""; break;
+				case "object": tmp = "{\n" + elogPrim(e[i], rd + "\t") + "}\n"; break;
+				case "string": tmp = "\"" + e[i] + "\"" + e[i].length; break;
+				default: tmp = e[i];
+				}
+			}
+			if (listFunctions !== true || $type(e[i]) !== "function") {
+				ret += rd + $type(e[i]) + ": " + prefix + tmp + "\n";
+			}
+		}
+	break;
+	default:
+		return $type(e) + ": " + e;
+	}
+	return ret;
+}
+
+
+var _____hiddenCnt__ = 0;
+var _____hiddenBlocks__ = {};
+var addTextSet = function (myClass, id) {
+	if (!_____hiddenBlocks__[myClass]) {
+		$$("div." + myClass).each(function (el2) {
+			if (el2.get("class").contains("hidden")) {
+				_____hiddenBlocks__[myClass] = el2;
+			}
+		});
+	}
+	var el2 = _____hiddenBlocks__[myClass].clone(true, true);
+	el2.removeClass("hidden").inject(id);
+	el2.getElements("textarea").each(function (el3) {
+		el3.id = el2.className + "_" + el3.id;
+		while ($(el3.id) != el3) {
+			el3.name = el2.className + "_" + _____hiddenCnt__;
+			el3.id = el2.className + "_" + _____hiddenCnt__++;
+		}
+	});
+};
+
+var removeTextBlockRow = function (e) {
+	var className = e.parentNode.className;
+	var blockElement = e.parentNode.parentNode;
+	var cnt = blockElement.childNodes.length;
+	if (cnt == 2) {
+		addTextSet(className, blockElement.id);
+	}
+	if (e.parentNode.destory) {
+		e.parentNode.destory();
+	} else {
+		e.parentNode.className = "hidden";
+		e.parentNode.innerHTML = "";
+	}
+};
+
+var getInputValues = function (myClass) {
+	var list = {};
+	$$("input." + myClass + "Input").each(function (el2) {
+		var val = el2.get("value");
+		if (val && val !== "") {
+			list[val] = val;
+		}
+	});
+
+	$$("select." + myClass + "Input").each(function (el2) {
+		var val = el2.get("value");
+		if (val && val !== "") {
+			list[val] = val;
+		}
+	});
+
+	$$("textarea." + myClass + "Input").each(function (el2) {
+		var val = el2.get("value");
+		if (val && val !== "") {
+			list[val] = val;
+		}
+	});
+	return list;
+};
+
+} catch(e) {
+	print_r("Core.js error:");
+	print_r(e);
+}
+
+var textViewer = function (el) {
+	var container = el.parentNode.parentNode;
+	if (el.get('text') == 'more...') {
+		container.getElements('a').each(function(el2) {
+			if (el2.get('text') == 'more...') {
+				el2.set('text', 'less...');
+			}
+		});
+		container.getElements('div.short').each(function(el2) {
+			el2.addClass("hidden");
+		});
+		container.getElements('div.long').each(function(el2) {
+			el2.removeClass("hidden");
+		});
+	} else {
+		container.getElements('a').each(function(el2) {
+			if (el2.get('text') == 'less...') {
+				el2.set('text', 'more...');
+			}
+		});
+
+		container.getElements('div.short').each(function(el2) {
+			el2.removeClass("hidden");
+		});
+		container.getElements('div.long').each(function(el2) {
+			el2.addClass("hidden");
+		});
+	}
+};
+
+var parseASISODate = function (date, isEndOfDay) {
+	if (date) {
+		var dateParts = date.split("/");
+		if (dateParts.length > 1) {
+			return dateParts[2] + '-'
+				+ (parseInt(dateParts[0]) >= 10 ?  '': '0') + parseInt(dateParts[0]) + '-'
+				+ (parseInt(dateParts[1]) >= 10 ?  '': '0') + parseInt(dateParts[1])
+				+ (isEndOfDay ? ' 23:59:59' : '');
+		}
+	}
+	return date;
+};
+
+/*******************************  Added from Main.js - MSimmons ********************************************/
+
+var EFX = ( function ( ) {
+    /**
+     * Add an overlay to element that is passed in.
+     *
+     * @param {Object} el - element to put overlay on.
+     * @param {Object} overlayOptions {
+     *                     @param {String} background - background color of overlay. defaults to #000000
+     *                     ,@param {String} position - position of overlay.  Defaults to absolute.
+     *                     ,@param {String} display - display property name for overlay.  Defaults to none.
+     *                     ,@param {Integer} opacity - opacity of overlay.  Defaults to 0.25.
+     *                     ,@param {Integer} zIndex - z-index of overlay.  Defautls to 100.
+     *                     ,@param {String} size - size of loading image.  Defaults to regular size which is 50x51.  Other options are small, large, extralarge.
+     *                     ,@param {Boolean} showLoadingImg - shows loading image.  Defaults to true.  Other option is false if you don't want the loading image to show.
+     *                }
+     */
+    var showOverlay = function (el2, options ) {
+
+        var el = (el2 && el2.id) ? $(el2.id) : el2;
+
+        // if element doesn't exist, there is no overlay to hide
+        if (!el) return;
+
+        el.addClass('loader-overlay');
+
+        if (typeof options !== 'undefined') {
+
+            // save initial element's style attribute
+            el.set('data-styles', el.get('style'));
+
+            if ( options.hasOwnProperty('background') ){ el.setStyle('background-color', options.background) };
+            if ( options.hasOwnProperty('position') ){ el.setStyle('position', options.position) };
+            if ( options.hasOwnProperty('display') ){ el.setStyle('display', options.display) };
+            if ( options.hasOwnProperty('opacity') ){ el.setStyle('opacity', options.opacity) };
+            if ( options.hasOwnProperty('zIndex') ){ el.setStyle('zIndex', options.zIndex) };
+
+
+            if ( options.hasOwnProperty('bgPosVertical') ){ el.setStyle('background-position', 'center ' + options.bgPosVertical) };
+
+            if ( options.hasOwnProperty('showLoadingImg') && options.showLoadingImg === false){
+                el.addClass('no-image')
+            }
+
+            if ( options.hasOwnProperty('size') && options.size == 'small' ){
+                el.addClass('size-small')
+            }
+        }
+    };
+
+    /**
+     * Remove the overlay on the element that is passed in.
+     * @param {Object} el - element to remove overlay
+     */
+    var hideOverlay = function (el) {
+
+        // if element doesn't exist, there is no overlay to hide
+        if (!el) return;
+
+        // revert back element's initial styles if any
+        if (el.hasAttribute('data-styles')) {
+            el.set('style', el.get('data-styles'))
+              .removeAttribute('data-styles');
+        }
+
+        el.removeClass('loader-overlay')
+            .removeClass('size-small')
+            .removeClass('no-image');
+
+    };
+
+    function swapElements(obj1, obj2) {
+        var temp = document.createElement("div");
+        obj1.parentNode.insertBefore(temp, obj1);
+        obj2.parentNode.insertBefore(obj1, obj2);
+        temp.parentNode.insertBefore(obj2, temp);
+        temp.parentNode.removeChild(temp);
+    };
+
+	var	dragContainerInit =	function ( title, container, options ) {
+		var o = options || {};
+		var DEFAULT_OPTIONS = {
+			onStart: function () {
+				if (container.preDrag) { container.preDrag(); }
+			}.bind(this),
+			onComplete: function () {
+				if (container.postDrag) { container.postDrag(); }
+			}.bind(this)
+		};
+		var dragContainerOptions = { handle: title , container: $('containerBody')};
+		for ( opt in DEFAULT_OPTIONS ) {
+			dragContainerOptions[opt] = o[opt] || DEFAULT_OPTIONS[opt];
+		}
+		title.setStyle("cursor", "move");
+		container.makeDraggable(dragContainerOptions);
+
+	};
+
+	var fadeEffect = function ( el, options, custom ) {
+		var o = options || {};
+		var DEFAULT_OPTIONS = {
+			duration: 250,
+			wait: false,
+			onComplete: function ( ) { }
+		};
+		var fadeOptions = { };
+		for ( opt in DEFAULT_OPTIONS ) {
+			fadeOptions[opt] = o[opt] || DEFAULT_OPTIONS[opt];
+		}
+		var fade = new Fx.Morph ( el, fadeOptions );
+		if ( custom ) {
+			fade.start(custom["start"], custom["end"]);
+		} else {
+			return fade;
+		}
+	};
+
+	var fadeOut = function (el, options) {
+		var o = options || {};
+		var DEFAULT_OPTIONS = {
+            duration : 250,
+            transition : Fx.Transitions.Back.easeOut,
+			onComplete : function () {
+				el.dispose();
+			}
+		};
+		var fadeOptions = {};
+		for (opt in DEFAULT_OPTIONS) {
+			fadeOptions[opt] = o[opt] || DEFAULT_OPTIONS[opt];
+		}
+
+		return new Fx.Morph(el, fadeOptions);
+	};
+
+    /**  Creates loading icon/wheel
+     *
+     * @param {Object} parms - {
+     *					wheelColor: color or nothing - since we only have 2 at the moment it is either white of the default which is grey.
+     *                  size: small, large or nothing.  defaults to nothing.
+     *                  bgPosVertical: vertical position of loading icon. defaults to center.  options are top, center, bottom.
+     *                  bgPosLeft: horizontal position of loading icon. defaults to center.  options are left, center, right.
+     *					styles: styles to add to loading image.
+     *					inject: element to inject this loading image into.
+     *					injectPosition:  position relative to element to inject this loading image into. defaults to bottom. options are top', 'bottom', 'after', or 'before'.
+     *				}
+     */
+	var loadingImg = function (parms) {
+        var p = parms || {}, options = {};
+
+		if (p["id"]) options["id"] = p["id"];
+
+        if (p["message"]) {
+        	p["height"] = 125;
+        	p["bgPosVertical"] = "55px";
+			p["size"] = "large";
+			p["textAlign"] = "center";
+			var messageDefaultStyles = { color: "#000000", "font-size": 14, "font-weight": "bold", margin: 0, "padding": "5px 0 0 0" };
+			var messageStyles = $extend(messageDefaultStyles, p["messageStyles"]);
+			var message = new Element("p", { styles: messageStyles }).set("html", p["message"]);
+        }
+
+		if (!p["size"]) {
+             if (p["width"] >= 150 && p["height"] >= 150) {
+                var iconSize = "_large";
+            } else if (p["width"] <= 16 || p["height"] <= 25) {
+                    var iconSize = "_small";
+            } else {
+                var iconSize = "";
+            }
+        } else {
+            var iconSize = "_" + p["size"];
+        }
+
+        var iconExt = ((p["wheelColor"]) ? "_" + p["wheelColor"] : "") + iconSize + ".gif";
+
+        options["styles"] = {
+            width: (p["width"]) ? p["width"] : "100%"
+			,height: (p["height"]) ? p["height"] : 51
+			,background: "transparent url(/core/images/loading" + iconExt + ") no-repeat " + (p["bgPosLeft"] || "center") + " " + (p["bgPosVertical"] || "center")
+			,opacity: 1
+			,"text-align": (p["textAlign"]) ? p["textAlign"] : ""
+		};
+
+		if ( p["styles"] ) {
+			for ( style in p["styles"] ) {
+				options["styles"][style] = p["styles"][style];
+			}
+		}
+
+		var img = new Element ("div", options);
+
+		if (p["message"]) img.adopt(message);
+
+		if (p["inject"]) img.inject(p["inject"], (p["injectPosition"]) ? p["injectPosition"] : "");
+
+		return img;
+
+	};
+
+	var	collapsableContainerInit = function ( el, hotspot, options ) {
+		options = options || { };
+		var smooth = options["smooth"] || 1;
+		el.slider = new Fx.Slide(el, {duration: options["duration"] || 450 } );
+
+		hotspot.addEvent("click", function ( e ) {
+
+			if (smooth) {
+				el.slider.toggle();
+
+			} else {
+				el.slider.toggleBlock();
+			}
+
+			if (this.getProperty("src")) {
+				if (this.getProperty("src").split("_")[1]) {
+					this.setProperty("src", "/images/icons/contract.png");
+				} else {
+					this.setProperty("src", "/images/icons/contract_r.png");
+				}
+			}else if (this.hasChild($(this.id + '_indicator'))) {
+
+				var toggleImg = $(this.id + '_indicator');
+				if (toggleImg.getProperty("src").split("_")[1]) {
+					toggleImg.setProperty("src", "/images/icons/contract.png");
+				} else {
+					toggleImg.setProperty("src", "/images/icons/contract_r.png");
+				}
+			}
+		} );
+
+		el.getParent().setStyle("overflow", "hidden");
+		if (el.hasClass("hide")) {
+			el.slider.hide();
+			el.removeClass("hide");
+		}
+	};
+
+	var	resizeContainerInit = function ( el, options ) {
+		var o = options || {};
+		var DEFAULT_OPTIONS = {
+			onStart : function ( el ) { },
+			onDrag : function ( el ) { },
+			onComplete : function ( el ) {
+				el.setStyle( "height", (el.clientHeight + 2) + "px" );
+			}
+		};
+		var resizeContainerOptions = { handle : new Element ( "Div", { styles : { bottom : 0, right : 0, width : 12, height : 12, position : "absolute", cursor : "se-resize", background: "url(/images/icons/icon_resize.gif) 99% 50% no-repeat" } } ).inject ( el ) };
+		for ( opt in DEFAULT_OPTIONS ) {
+			resizeContainerOptions[opt] = o[opt] || DEFAULT_OPTIONS[opt];
+		}
+		el.makeResizable(resizeContainerOptions);
+	};
+
+	var floatContainerInit = function ( container, options ) {
+		container.setStyle("position", "absolute");
+		container.floatPosition = function() {
+			var sizes = window.getSize(), scroll = window.getScroll();
+            if ( this.floatMove ) {
+				this.floatMove.cancel();
+			}
+			if (container.overrideLeft) {
+				var left = scroll.x + container.overrideLeft;
+			} else {
+				var left = (options["left"]) ? (scroll.x + options["left"]) : (scroll.x + (scroll.x - options["x"]) / 2);
+			}
+			if (container.overrideTop) {
+				var top = scroll.y + container.overrideTop;
+			} else {
+				var top = (options["top"]) ? (scroll.y + options["top"]) : (scroll.y + (sizes.y - options["y"]) / 2);
+			}
+			this.floatMove = new Fx( { "duration": options["duration"] || 500, transition: options["transition"] || Fx.Transitions.Back.easeOut }).start(0);
+		};
+		container.floatPosition();
+		window.addEvents( { "scroll" : container.floatPosition.bind(container), "resize" : container.floatPosition.bind(container) } );
+	};
+
+    var hasScrollBar = function ( container ) {
+        var sb = ($type(container)) == "string" ? new Fx.Scroll($(container), { wait : false } ) :  new Fx.Scroll(container, { wait : false } );
+        var now = sb.toBottom();
+		if (now.to[0] == 0 && now.to[1] == 0) {
+			return false;
+		} else {
+			sb.scrollTo(0, 0);
+			return true;
+		}
+	};
+
+    var flashOverlay = function (el, opt, repeat, interval) {
+		el.flashChain = new Chain();
+		var r = repeat || 5;
+		for (i = 0; i < r; i++) {
+			el.flashChain.chain(function ( ) { EFX.showOverlay(el, opt); });
+			el.flashChain.chain(function ( ) { EFX.hideOverlay(el); });
+		}
+		el.runChain = function() {
+			el.flashChain.callChain();
+			if (el.flashChain.chains.length == 0) { el.runChain = $clear(el.flashTimer); }
+		};
+		el.flashTimer = el.runChain.periodical(interval || 500);
+	};
+
+	return {
+		dragContainerInit : dragContainerInit
+		,fadeEffect : fadeEffect
+		,loadingImg : loadingImg
+		,fadeOut : fadeOut
+		,floatContainerInit : floatContainerInit
+        ,collapsableContainerInit : collapsableContainerInit
+		,resizeContainerInit : resizeContainerInit
+		,hasScrollBar : hasScrollBar
+		,flashOverlay : flashOverlay
+        ,showOverlay : showOverlay
+        ,hideOverlay : hideOverlay
+        ,swapElements : swapElements
+	};
+
+} ) ();
+
+var PB = ( function ( ) {
+
+	var ProgressBars = 0;
+
+	var ProgressBar = new Class ( {
+		initialize : function ( value, parms) {
+			var vals = { id :'progressbar_' + ( ProgressBars++ ), value : $pick( value, 0 ), width : 0, height : 0, darkbg : '#67a1c4', darkfg : '#ffffff', lightbg : '#ffffff', lightfg : '#000066' };
+			if ( parms && $type( parms ) == 'object' ) { $extend( vals, parms ); }
+			if ( vals["height"] < 12 ) { vals["height"] = 12; }
+			var pb = new Element ( "div", { id : vals["id"], 'class' : "progressbar_wrapper", styles : { border : "1px solid #bdbbbb", width : vals["width"], height : vals["height"], position : "relative" } } );
+			pb.vals = vals;
+			pb.appendChild( pb.vals["dark"] = new Element( "div", { id : vals["id"] + "_dark", 'class' : "progressbar_dark", styles : { width : vals["width"], height : vals["height"], background : vals["darkbg"], color : vals["darkfg"], position : "absolute", 'text-align' : "center", left : 0, top : 0, 'line-height': vals["height"] - 2 } } ) );
+			pb.appendChild( pb.vals["light"] = new Element( "div", { id : vals["id"] + '_light', 'class' : 'progressbar_light', styles: { width : vals["width"], height : vals["height"], background : vals["lightbg"], color : vals["lightfg"], position : "absolute", 'text-align' : "center", left : 0, top : 0, 'line-height': vals["height"] - 2 } } ) );
+			pb.setValue = function ( value ) {
+				value = parseFloat( value );
+				if ( isNaN( value ) || value < 0 ) {
+					value = 0;
+				} else {
+					if ( value > 100 ) {
+						value = 100;
+					}
+				}
+				this.vals["value"] = value;
+				this.vals["dark"].empty( );
+				this.vals["light"].empty( );
+				this.vals["dark"].appendText( value + '%' );
+				this.vals["light"].appendText( value + '%' );
+				var r = parseInt( this.vals["width"] * ( value / 100 ) );
+				this.vals["dark"].setStyle( "clip", "rect(0," + r + "px," + this.vals["height"] + "px,0px)" );
+				this.vals["light"].setStyle( "clip", "rect(0," + this.vals["width"] + "px," + this.vals["height"] + "px," + r + "px)" );
+			};
+			if ( vals["width"]) {
+				pb.setValue( vals["value"]) ;
+			} else {
+				setTimeout ( 'ProgressBar_checkForParent("' + pb.id + '")', 1 );
+			}
+			return pb;
+		}
+	} );
+
+	function ProgressBar_checkForParent ( id ) {
+		var pb = $(id);
+		if (!pb) { return; }
+		if (!pb.parentNode) { return setTimeout( 'ProgressBar_checkForParent("' + id + '")', 1 ); }
+		pb.setStyle( "width", "100%" );
+		pb.vals["dark"].setStyle( "width" , pb.offsetWidth );
+		pb.vals["light"].setStyle( "width" , pb.offsetWidth );
+		pb.vals["width"] = pb.offsetWidth;
+		pb.setValue( pb.vals["value"] );
+	}
+
+	return {
+		createPB : function ( el, value, parms ) {
+			if ($(parms["containerID"])) $(parms["containerID"]).dispose();
+
+			var elem = parms["elem"] || "div";
+			var pb = new Element (elem, { id : parms["containerID"], styles : {  "z-index" : 99 } } ).inject ( el );
+			pb.headElements = Popups.createPopupHeader({
+                container: pb,
+                titleStyle: {
+                    "padding-top": "5px",
+                    background: "#a0b6cb",
+                    width: (parms["width"] / 2).toInt(),
+                    height: 30,
+                    "float": "left"
+                },
+                titleAdopt: {
+                    "spanText": new Element("span", {
+                        styles: {
+                            "text-decoration": "underline",
+                            "letter-spacing": "1px",
+                            "color": "#000000",
+                            "font-weight": "bold",
+                            "cursor": "pointer",
+                            "z-index": 100
+                        },
+                        events: {
+                            click: function(e){
+                                if (pb.isPaused()) {
+                                    pb.resumePB();
+                                    this.set("text", "Resumed");
+                                }
+                                else {
+                                    pb.pausePB();
+                                    this.set("text", "Paused");
+                                }
+                            }
+                        }
+                    }).set("text", "Loading")
+                }
+            });
+			if (!parms["withFloat"]) { pb.headElements["headingDiv"].setStyle("display", "none"); }
+			pb.headElements["close"].setAttribute("title", "Stop Loading");
+			var header = pb.headElements["headingDiv"].inject( pb );
+			var sb = new ProgressBar ( value, parms ).inject( pb );
+			var options = { };
+			if (parms["opacity"]) { pb.setOpacity(parms["opacity"]); }
+			if (parms["styles"]) { pb.setStyles(parms["styles"]); }
+			pb.setStyle("font-weight", "bold");
+			pb.fade = EFX.fadeOut(pb);
+
+            if (parms["withFloat"]) {
+                EFX.floatContainerInit( pb, { "left" : 5, "top" : window.getSize().y - 80, "duration" : 10 } );
+                var options = { };
+				if (parms["opacity"]) {
+					options["oMax"] = parms["opacity"];
+					options["oMin"] = parms["opacity"] / 2;
+				}
+				pb.postDrag = function () {
+					var coords = this.getCoordinates(), sizes = window.getSize(), scrollSize = window.getScrollSize();
+                    this.overrideLeft = coords.left - scrollSize.x;
+					this.overrideTop = coords.top - scrollSize.y;
+				};
+                EFX.dragContainerInit( pb.headElements["headingDiv"], pb, options );
+			};
+			pb.changeStatus = parms["status_cb"] || function ( ) { };
+			pb.process_id = $random(1, 1000000);
+			pb.process_status = 0; // 0 => active, 1 => paused, 2 => stopped
+			pb.statusText = new Element ("div", { } ).inject( pb );
+			pb.statusText.setStyles( { "color" : "#000000", "font-weight" : "bold" } );
+			pb.setStatusText = function ( txt ) {
+				pb.statusText.set("html", txt );
+			};
+			pb.setValue = function ( val ) {
+				sb.setValue( val );
+			};
+// check status
+			pb.isActive = function ( ) {
+				return this.process_status == 0;
+			};
+			pb.isPaused = function ( ) {
+				return this.process_status == 1;
+			};
+			pb.isStopped = function ( ) {
+				return this.process_status == 2;
+			};
+// change status
+			pb.pausePB = function ( ) {
+				this.process_status = 1;
+				this.changeStatus();
+			};
+			pb.resumePB = function ( ) {
+				this.process_status = 0;
+				this.setStatusText("Resuming load...");
+				this.changeStatus();
+			};
+			pb.stopPB = function ( ) {
+				this.process_status = 2;
+				this.setStatusText("Stopping load...");
+				pb.headElements["title"].set("text", "Stopped");
+				this.changeStatus();
+			};
+
+			if (parms && parms["containerID"]) {
+				setTimeout('$(parms["containerID"]).setStyle("display", "block")', parms["delayInterval"] || 50);
+				//setTimeout('try { $("' + parms["containerID"] + '").setStyle("display", "block"); } catch (ex) { }', parms["delayInterval"] || 50);
+			}
+			//setTimeout('try { $("' + parms["containerID"] + '").setStyle("display", "block"); } catch (ex) { }', parms["delayInterval"] || 50);
+			return pb;
+		}
+	};
+
+} ) ();
+
+var UserPrefs = ( function ( ) {
+
+	var prefs = { };
+
+	var prefHash = function ( section ) {
+		var hash = new Hash.Cookie ( "prefs_" + section, { duration : 30 } );
+		return {
+			get : function ( item ) {
+				return hash.get ( MD5 ( item ) );
+			},
+			set : function ( item, value ) {
+				return hash.set ( MD5 ( item ), value );
+			},
+			has : function ( item ) {
+				return hash.hasKey ( MD5 ( item ) );
+			},
+			destroy : function ( ) {
+				hash.empty();
+			}
+		};
+	};
+
+	return function ( section ) {
+		section = MD5 ( section );
+		if ( !prefs[section] ) {
+			prefs[section] = new prefHash ( section );
+		}
+		return prefs[section];
+	};
+
+} )();
+
+
+/**
+ *  API for Tooltip message
+ *
+ *  @author Michael Simmons
+ */
+var ToolTipAPI = ( function() {
+
+	return {
+
+        /**
+         * shows tooltip
+         *
+         * @param {Object} el - element that has event to invoke this function
+         * @param {String} text - text to show in tooltip
+         * @param {Integer} pixelsLeft - pixels left to move tooltip
+         */
+        showToolTip: function(el, text, pixelsLeft) {
+            var toolTipTop = new Element("div", { "class": "toolTipTop" })
+                ,toolTipMiddle = new Element("div", { "class": "toolTipMiddle" }).set("text", text)
+                ,toolTipBottom = new Element("div", { "class": "toolTipBottom" })
+                ,toolTipWrapper = new Element("div", { id: el.id + "_ToolTipWrappper", "class": "toolTipWrapper" }).adopt(toolTipTop, toolTipMiddle, toolTipBottom)
+                ,coords = CoordinatesAPI.getCoordinates(el);
+
+            toolTipWrapper.setStyles({ position: "absolute", top: coords.bottom, left: parseInt(coords.left - ((pixelsLeft > 0) ? pixelsLeft : 0)) }).inject($(document.body));
+        },
+
+        /**
+         * hides tooltip
+         *
+         * @param {Object} el - element that has event to invoke this function
+         */
+        hideToolTip: function(el) {
+            var toolTipWrapper = $(el.id + "_ToolTipWrappper");
+            if (toolTipWrapper) toolTipWrapper.destroy();
+        }
+    };
+})();
+
+/**
+ * API to get coordinates of elements
+ *
+ * @author Michael Simmons <msimmons@guidepointglobal.com>
+ */
+var CoordinatesAPI = ( function(){
+    /**
+     * get coordinates of passed in element
+     *
+     * @param {Object} obj - object to get coordinates for
+     */
+	var getCoordinates = function(obj) {
+		if (Browser.name == 'ie') {
+			var top = right = bottom = left = 0
+				,objWidth = obj.offsetWidth
+				,objHeight = obj.offsetHeight;
+
+			if (obj.offsetParent) {
+				do {
+					left += obj.offsetLeft;
+					top += obj.offsetTop;
+				} while (obj = obj.offsetParent);
+			}
+
+			return { top: top, right: left + objWidth, bottom: top + objHeight, left: left };
+		} else {
+			return obj.getCoordinates();
+    	}
+	};
+
+    /**
+     * gets position/coordinates of mouse pointer
+     *
+     * @param {Object} e - event object
+     */
+	var getMouseCoordinates = function(e) {
+		var posx = posy = 0;
+		if (!e) var e = window.event;
+		if (e.pageX || e.pageY) {
+			posx = e.pageX;
+			posy = e.pageY;
+		} else if (e.clientX || e.clientY) {
+			posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+			posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+		}
+		return { top: posy, left: posx };
+	};
+
+	var getViewportWidth = function() {
+       if (window.innerWidth)        {
+           return window.innerWidth;
+       } else if (document.body && document.body.offsetWidth) {
+           return document.body.offsetWidth;
+       } else {
+    	   return 0;
+       }
+	};
+
+	var getViewportHeight = function() {
+       if (window.innerHeight) {
+    	   return window.innerHeight;
+       } else if (document.body && document.body.offsetHeight) {
+    	   return document.body.offsetHeight;
+       } else {
+    	   return 0;
+       }
+	};
+
+	var getViewPointCoordinates = function() {
+		return { width: getViewportWidth, height: getViewportHeight };
+	};
+
+	return {
+		getCoordinates: getCoordinates
+		,getMouseCoordinates: getMouseCoordinates
+		,getViewportWidth: getViewportWidth
+		,getViewportHeight: getViewportHeight
+		,getViewPointCoordinates: getViewPointCoordinates
+	};
+})();
+
+var convertToDollarAmount = function () {
+	var currencyID = $("CurrencyID").value;
+    if (currencyID == "") {
+        return 0;
+	}
+	var rateInUsCurrency = $("Rate").value.parseUSCurrency();
+	if (isNaN(rateInUsCurrency) || rateInUsCurrency == 0) {
+		MessageAPI.addErrorMessage('Rate', 'Invalid Rate (must be greater than 0, Accepting leading not-numeric character(s) and any digit after the \'.\' will be truncated.)');
+	} else {
+		MessageAPI.removeErrorMessage("Rate");
+	}
+	if (currencyID == 1 && $("DollarRate") && $("Rate")) {
+		$("DollarRate").value = $("Rate").value;
+	} else {
+		var rate = $("Rate").value;
+		var options = {
+			onComplete : function (obj) {
+				if (obj.success) {
+					$("DollarRate").value = obj.Amount;
+				}
+			}
+		}
+		API.request("/apply/covertcurrency/0", {rate : rate, currencyID : currencyID}, options);
+	}
+}
+
+/**********************************************
+**************** PROTOTYPES *******************
+**********************************************/
+
+// Prototypes
+Date.monthNames = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+Date.monthDays = [ 31, "l", 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
+Date.isValid = function ( date ) {
+	if ( date instanceof Date ) {
+		return true;
+	} else {
+		return !isNaN ( Date.parse ( date ) );
+	}
+};
+
+Date.create = function ( date ) {
+	if ( date instanceof Date ) {
+		return date;
+	} else {
+		var d = new Date();
+		var p = Date.parse ( date );
+		if ( !isNaN ( p ) ) {
+			d.setTime ( p );
+		}
+		return d;
+	}
+};
+
+Date.prototype.getMonthAsString = function ( ) {
+	return Date.monthNames[this.getMonth()];
+};
+
+Date.prototype.getMonthAsStringShort = function ( ) {
+	return this.getMonthAsString().substr(0,3);
+};
+
+Date.dayNames = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
+
+Date.prototype.getDayAsString = function ( ) {
+	return Date.dayNames[this.getDay()];
+};
+
+Date.prototype.getDayAsStringShort = function ( ) {
+	return this.getDayAsString().substr(0,3);
+};
+
+Date.prototype.equals = function ( date ) {
+	if ( !(date instanceof Date ) ) return false;
+	return this.getFullYear() == date.getFullYear() && this.getMonth() == date.getMonth() && this.getDate() == date.getDate();
+};
+
+Date.prototype.isWeekend = function ( ) {
+	return this.getISODay() >= 6;
+};
+
+Date.prototype.getISODay = function ( ) {
+	var d = this.getDay();
+	if ( d < 1 ) return 7;
+	return d;
+};
+
+Date.prototype.getSuffix = function ( ) {
+	var x = ("" + this.getDate()).substr(-1);
+	var y = ("" + this.getDate()).substr(-2);
+	if ( x == 1 && y != 11 ) return "st";
+	if ( x == 2 && y != 12 ) return "nd";
+	if ( x == 3 && y != 13 ) return "rd";
+	return "th";
+};
+
+Date.prototype.getDaysInMonth = function ( ) {
+	var d = Date.monthDays[this.getMonth()];
+	return ( isNaN ( d ) ? ( this.isLeapYear() ? 29 : 28 ) : d );
+};
+
+Date.prototype.isLeapYear = function ( ) {
+	var y = this.getFullYear();
+	if ( y % 4 == 0 ) {
+		if ( y % 100 == 0 ) {
+			return ( y % 400 == 0 );
+		} else {
+			return true;
+		}
+	} else {
+		return false;
+	}
+};
+
+Date.prototype.getAMPM = function ( ) {
+	return this.isMorning() ? "AM" : "PM";
+};
+
+Date.prototype.isMorning = function ( ) {
+	return this.getHours() < 12;
+};
+
+Date.prototype.getHours12Hr = function ( ) {
+	return this.getHours() % 12;
+};
+
+/*Date.prototype.format = function ( format ) {
+	while ( format.match ( /(^|[^\\])[dDjlNSwzWFmMntLoYyaABgGhHisueIOPZcrU]/ ) ) {
+		format = format
+			// d - Day of the month, 2 digits with leading zeros
+			.replace ( /(^|[^\\])d/g, "$1" + (""+this.getDate()).lpad(2,"0") )
+			// D - A textual representation of a day, three letters
+			.replace ( /(^|[^\\])D/g, "$1" + this.getDayAsStringShort().replace(/(\w)/g,"\\$1") )
+			// j - Day of the month without leading zeros
+			.replace ( /(^|[^\\])j/g, "$1" + this.getDate() )
+			// l - A full textual representation of the day of the week
+			.replace ( /(^|[^\\])l/g, "$1" + this.getDayAsString().replace(/(\w)/g,"\\$1") )
+			// N - ISO-8601 numeric representation of the day of the week
+			.replace ( /(^|[^\\])N/g, "$1" + this.getISODay() )
+			// S - English ordinal suffix for the day of the month, 2 characters
+			.replace ( /(^|[^\\])S/g, "$1" + this.getSuffix().replace(/(\w)/g,"\\$1") )
+			// w - Numeric representation of the day of the week
+			.replace ( /(^|[^\\])w/g, "$1" + this.getDay() )
+			// z - The day of the year (starting from 0) [not implemented]
+			.replace ( /(^|[^\\])z/g, "$1" + "\\z" )
+
+			// W - ISO-8601 week number of year, weeks starting on Monday
+			.replace ( /(^|[^\\])W/g, "$1" + "\\W" )
+
+			// F - A full textual representation of a month, such as January or March
+			.replace ( /(^|[^\\])F/g, "$1" + this.getMonthAsString().replace(/(\w)/g,"\\$1") )
+			// m - Numeric representation of a month, with leading zeros
+			.replace ( /(^|[^\\])m/g, "$1" + (""+(this.getMonth()+1)).lpad(2,"0") )
+			// M - A short textual representation of a month, three letters
+			.replace ( /(^|[^\\])M/g, "$1" + this.getMonthAsStringShort().replace(/(\w)/g,"\\$1") )
+			// n - Numeric representation of a month, without leading zeros
+			.replace ( /(^|[^\\])n/g, "$1" + ( this.getMonth() + 1 ) )
+			// t - Number of days in the given month
+			.replace ( /(^|[^\\])t/g, "$1" + this.getDaysInMonth() )
+
+			// L - Whether it's a leap year
+			.replace ( /(^|[^\\])L/g, "$1" + ( this.isLeapYear() ? 1 : 0 ) )
+			// o - [Not implemented]
+			.replace ( /(^|[^\\])o/g, "$1" + "\\o" )
+			// Y - A full numeric representation of a year, 4 digits
+			.replace ( /(^|[^\\])Y/g, "$1" + this.getFullYear() )
+			// y - A two digit representation of a year
+			.replace ( /(^|[^\\])y/g, "$1" + (""+this.getFullYear()).substr(2,2) )
+
+			// a - Lowercase Ante meridiem and Post meridiem
+			.replace ( /(^|[^\\])a/g, "$1" + this.getAMPM().toLowerCase().replace(/(\w)/g,"\\$1") )
+			// A - Uppercase Ante meridiem and Post meridiem
+			.replace ( /(^|[^\\])A/g, "$1" + this.getAMPM().replace(/(\w)/g,"\\$1") )
+			// B - Swatch Internet time [not implemented]
+			.replace ( /(^|[^\\])B/g, "$1" + "\\B" )
+			// g - 12-hour format of an hour without leading zeros
+			.replace ( /(^|[^\\])g/g, "$1" + this.getHours12Hr() )
+			// G - 24-hour format of an hour without leading zeros
+			.replace ( /(^|[^\\])G/g, "$1" + this.getHours() )
+			// h - 12-hour format of an hour with leading zeros
+			.replace ( /(^|[^\\])h/g, "$1" + (""+this.getHours12Hr()).lpad(2,"0") )
+			// H - 24-hour format of an hour with leading zeros
+			.replace ( /(^|[^\\])H/g, "$1" + (""+this.getHours()).lpad(2,"0") )
+			// i - Minutes with leading zeros
+			.replace ( /(^|[^\\])i/g, "$1" + (""+this.getMinutes()).lpad(2,"0") )
+			// s - Seconds, with leading zeros
+			.replace ( /(^|[^\\])s/g, "$1" + (""+this.getSeconds()).lpad(2,"0") )
+			// u - Milliseconds
+			.replace ( /(^|[^\\])u/g, "$1" + this.getMilliseconds() )
+
+			// e - Timezone identifier [not implemented]
+			.replace ( /(^|[^\\])e/g, "$1" + "\\e" )
+			// I - Whether or not the date is in daylight saving time [not implemented]
+			.replace ( /(^|[^\\])I/g, "$1" + "\\I" )
+			// O - Difference to Greenwich time (GMT) in hours
+			.replace ( /(^|[^\\])O/g, "$1" + ( (o=this.getTimezoneOffset()/60) > 0 ? "-" : "+" ) + ( parseInt(o) + "" + 60 * ( o - parseInt(o) ) ).rpad(3,"0").lpad(4,"0") )
+			// P - Difference to Greenwich time (GMT) with colon between hours and minutes
+			.replace ( /(^|[^\\])P/g, "$1" + ( (o=this.getTimezoneOffset()/60) > 0 ? "-" : "+" ) + ( parseInt(o) + ":" + 60 * ( o - parseInt(o) ) ).rpad(4,"0").lpad(5,"0") )
+			// T - Timezone abbreviation [not implemented]
+			.replace ( /(^|[^\\])T/g, "$1" + "\\T" )
+			// Z - Timezone offset in seconds. The offset for timezones west of UTC is always negative, and for those east of UTC is always positive
+			.replace ( /(^|[^\\])Z/g, "$1" + ( this.getTimezoneOffset() * -60 ) )
+
+			// c - ISO 8601 date
+			.replace ( /(^|[^\\])c/g, "$1" + "Y-m-d\\TG:i:sP" )
+			// r - RFC 2822 formatted date
+			.replace ( /(^|[^\\])r/g, "$1" + "D, j M Y G:i:s O" )
+			// U - Seconds since the Unix Epoch
+			.replace ( /(^|[^\\])U/g, "$1" + this.getTime() / 100 );
+	}
+	return format.replace ( /\\(\w)/g, "$1" );
+}*/
+
+/************* String prototype ************************/
+String.prototype.lpad = function ( length, pad ) {
+	var x = this;
+	while ( x.length < length ) x = (pad||" ") + x;
+	return x;
+};
+
+String.prototype.rpad = function ( length, pad ) {
+	var x = this;
+	while ( x.length < length ) x += (pad||" ");
+	return x;
+};
+
+String.prototype.ucWords = function ( ) {
+	return this.replace ( /\b(\w)/g, function ( c ) {
+		return c.toUpperCase();
+	} );
+};
+
+if (typeof String.prototype.ucFirst === 'undefined') {
+	String.prototype.ucFirst = function() {
+    	return this.charAt(0).toUpperCase() + string.slice(1);
+    }
+}
+
+String.prototype.stripCarriageReturns = function ( ) {
+	return this.replace( /\\r/g, '' );
+};
+
+String.prototype.stripTags = function ( ) {
+	return this.replace( /<([^>]+)>/g, '' );
+};
+
+String.prototype.addSlashes = function ( ) {
+	return this.replace( /['"]/g, function( match ) {
+			return ( '\\' + match.charAt( 0 ) + match.charAt ( 1 ) );
+	} );
+};
+
+String.prototype.nl2br = function ( ) {
+	return this.replace( /\n/g, '<br />' );
+};
+
+String.prototype.br2nl = function ( ) {
+	return this.replace( /<br\/>/gi, "\n" );
+};
+
+String.prototype.stripSlashes = function ( ) {
+	return this.replace(/\\['"]{1,}/g, function ( match ) {
+		return ( match.charAt ( 1 ) );
+	} );
+};
+
+String.prototype.htmlEntities = function ( ) {
+	return this.replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
+};
+
+String.prototype.ltrim = function ( ) {
+	return this.replace( /^\s+/g, '' );
+};
+
+String.prototype.rtrim = function( ) {
+	return this.replace ( /\s+$/g, '' );
+};
+
+String.prototype.strtoupper = function ( ) {
+	return this.toUpperCase ( );
+};
+
+String.prototype.strtolower = function ( ) {
+ 		return this.toLowerCase ( );
+};
+
+String.prototype.firstChar = function ( n ) {
+	return ( this.charAt ( 0 ) == n );
+};
+
+String.prototype.hasChar = function ( n ) {
+	for (var i = 0; i <= this.length; i++ ) {
+		if ( this.charAt(i) == n ) { return true; }
+	}
+	return false;
+};
+
+String.prototype.lastChar = function ( n ) {
+	return ( this.charAt( this.length - 1 ) == n );
+};
+
+String.prototype.globalReplace = function( val, repl, regexAttr ) {
+	return this.replace( new RegExp( val, regexAttr || 'gi'), repl );
+};
+
+String.prototype.posOf = function ( n ) {
+	var positions = [];
+	for ( var i = 0; i < this.length; i++ ) {
+		if ( this.charAt( i ) == n ) {
+			positions.push( i );
+		}
+	}
+	return ( positions.length == 0 ) ? false : positions;
+};
+String.prototype.getFirstChar = function ( ) {
+	return this.charAt( 0 );
+};
+String.prototype.getLastChar = function ( ) {
+	return this.charAt( this.length - 1 );
+};
+String.prototype.ucFirst = function ( ) {
+	return this.replace( this.charAt( 0 ), this.charAt( 0 ).strtoupper());
+};
+String.prototype.lcFirst = function ( ) {
+	return this.replace( this.charAt( 0 ), this.charAt( 0 ).strtolower());
+};
+String.prototype.isInt = function () {
+	var i = value.indexOf(".");
+	if (isNaN(this) || (i > -1 && i < this.length-1)) {
+		return false;
+	}
+	return true;
+};
+String.prototype.isFloat = function () {
+	if (isNaN(this)) {
+		return false;
+	}
+	return true;
+};
+String.prototype.parseUSCurrency = function () {
+	var ret = this.trim().replace(/[ ,\$]/g, "");
+
+	return ret.split('.')[0].isFloat() ? parseInt(ret.split('.')[0]) : "";
+};
+String.prototype.toUSCurrency = function () {
+	var i;
+	var val = this.parseUSCurrency();
+	var tmp = val.split(".");
+	if(tmp.length == 1 && tmp[0].length == 0) { return "";}
+	if (tmp.length > 1 && tmp[1].length > 2) {
+		if (tmp[1].charAt(2) >= 5) {
+			val -= -.01;
+			val += "";
+		}
+		val = val.substr(0, tmp[0].length + 3);
+		tmp = val.split(".");
+
+	}
+	var t = tmp[0].length % 3;
+	var ret = "$";
+	for (i = 0; i < val.length; i++) {
+		if((i - t + 3) % 3 == 0 && i > 0 && i < tmp[0].length - 1) {
+			ret += ",";
+		}
+		ret += val.charAt(i);
+	}
+	if (tmp.length == 1) {
+		ret += ".00";
+	} else if (tmp[1].length == 0) {
+		ret += "00";
+	} else if (tmp[1].length == 1) {
+		ret += "0";
+	}
+	return ret;
+};
+
+String.prototype.isValidName = function () {
+	return true;
+	/*if (this.length > 80) {
+		return false;
+	}
+
+	if (this.split(/[a-zA-Z ,"]/).join("").length == 0) {
+		return true;
+	}
+	return false;*/
+};
+
+String.prototype.isValidZip = function () {
+	if (this.length > 20) {
+		return false;
+	}
+	if (this.split(/[a-zA-Z0-9]/).join("").length == 0) {
+		return true;
+	}
+	return false;
+};
+
+String.prototype.isCurrency = function () {
+	return (this.parseUSCurrency() !== "") ? true : false;
+};
+
+String.prototype.isValidCurrency = function () {
+	return this.isCurrency();
+};
+
+String.prototype.isValidEmail = function () {
+	//if (this.search(/^[a-zA-Z\s]+[(]?[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})[)]?$/) > -1) {
+	//return (this.search(/^[a-zA-Z0-9\s]+[(]?[\.\'_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,4})[)]?$/) > -1);
+	return (this.search(/^[0-9a-zA-Z_\-\.\'\+]+@([0-9a-zA-Z\-]+\.)+[a-zA-Z]+$/) > -1);
+};
+
+String.prototype.isValidKey = function () {
+	if (this.isFloat()) {
+		if (this >= 0) {
+			var a = this.split('.');
+			if (a.length == 1 || parseInt(a[1]) == 0) {
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
+String.prototype.isValidFloat = function () {
+	return this.isFloat();
+};
+
+String.prototype.isSSN = function () {
+	if (this.isInt() && this > 0 && this.length == 9) {
+		return true;
+	}
+	return false;
+};
+
+String.prototype.isEIN = function () {
+	if (this.isInt() && value > 0 && this.length == 10) {
+		return true;
+	}
+	return false;
+};
+
+String.prototype.isSSNOrEIN = function () {
+	if (this.isInt() && this > 0 && this.length >= 9 && this.length <= 10) {
+		return true;
+	}
+	return false;
+};
+/*
+String.prototype.isValidSSN = function () {
+	return this.isSSNOrEIN();
+}*/
+
+String.prototype.isValidPhoneNumber = function () {
+	var isValid = false;
+	if (this.search(/.*[0-9].*[0-9].*[0-9].*[0-9].*[0-9].*/) > -1) {
+		isValid = true;
+	}
+
+	if ($("validPhone")) {
+		var phone = this.replace(/\D/g,'');
+		var regExps = [/(\d)\1{9}/, /(\d)\1{6}/, /\d{3}(\d)\1{6}/, /\d{3}(5551212)/, /(5551212)/,
+			/(1234567890)/, /(1234567)/, /(4567890)/, /\d{3}(1234567)/,
+			/(\d{3}4567890)/, /(0987654321)/, /(0987654)/, /(7654321)/, /\d{3}(0987654)/, /\d{3}(7654321)/];
+		for (var i = 0; i < regExps.length; i++) {
+			if (phone.search(regExps[i]) > -1) {
+				isValid = false;
+			}
+		}
+	}
+
+	return isValid;
+};
+
+String.prototype.numberFormat = function () {
+	nStr = this;
+	x = nStr.split('.');
+	x1 = x[0];
+	x2 = x.length > 1 ? '.' + x[1] : '';
+	var rgx = /(\d+)(\d{3})/;
+	while (rgx.test(x1)) {
+		x1 = x1.replace(rgx, '$1' + ',' + '$2');
+	}
+	return x1 + x2;
+};
+
+String.prototype.htmlEntitiesDecode = function () {
+    var temp = document.createElement("div");
+    temp.innerHTML = this;
+    var result = temp.childNodes[0].nodeValue;
+    temp.removeChild(temp.firstChild);
+    return result;
+}
+
+String.prototype.isValidNpi = function () {
+    if (!(/^\d{10}$/.test(this)) || this == '1234567890' || this == '9876543210' || (/^[0]{10}|[1]{10}|[2]{10}|[3]{10}|[4]{10}|[5]{10}|[6]{10}|[7]{10}|[8]{10}|[9]{10}$/.test(this))) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+String.prototype.isValidLicenceNumber = function () {
+    if (!(/(?!0+$)\d/.test(this))) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+/*String.prototype.isValidAdvisorEmail = function (cbFunction) {
+	if (this.isValidEmail()) {
+		$
+	}
+	return true;
+}*/
+
+
+// Number prototype
+Number.prototype.numberFormat = function () {
+
+	nStr = this.toString();
+	x = nStr.split('.');
+	x1 = x[0];
+	x2 = x.length > 1 ? '.' + x[1] : '';
+	var rgx = /(\d+)(\d{3})/;
+	while (rgx.test(x1)) {
+		x1 = x1.replace(rgx, '$1' + ',' + '$2');
+	}
+	return x1 + x2;
+};
+
+Fx.Slide.extend({
+    toggleBlock: function(mode){
+        if (this.wrapper.offsetHeight == 0 || this.wrapper.offsetWidth == 0) {
+            return this.show(mode);
+        }
+        else {
+            return this.hide(mode);
+        }
+    }
+});
+
+var setSelect = function (id, value) {
+	var el = $(id);
+    for(var i=0; i< el.options.length; i++) {
+        var el2 = el.options[i];
+        if (el2.value == value) {
+			el.selectedIndex=i;
+			el2.selected = true;
+        } else {
+			el2.selected = false;
+        }
+    }
+
+};
+
+var array_unique = function (arr) {
+	var tmp = [];
+	for (var i = 0; i < arr.length; i++) {
+		if (!tmp.contains(arr[i])) {
+			tmp.push(arr[i]);
+		}
+	}
+	return tmp;
+};
+
+var isset = function(objName){
+    var set;
+    try {
+        eval("set = $defined(" + objName + ")");
+    } catch (ex) {
+    	set = false;
+    }
+
+    return set;
+};
+
+var updateNoteCountA = function (elID, cnt) {
+	$(elID).set('text', cnt > 0 ? cnt : "");
+
+	var iconTypes = {PMNoteCountSpan : 'AdvNote', CltNoteCountSpan : 'CltNote', pmnspan : 'pmnimg', clncntspan : 'clnimg' };
+	var lines = elID.split('_');
+	for (var i in iconTypes) {
+		if (lines[0] == i) {
+			$(iconTypes[i] + '_' + lines[1]).src= (cnt > 0) ? "/images/icons/icon_note.gif" : "/images/icons/icon_add_note.gif";
+		}
+	}
+};
+
+
+var call_user_func = function (cb, parameters) {
+    // Call a user function which is the first parameter
+    //
+    // version: 909.322
+    // discuss at: http://phpjs.org/functions/call_user_func    // +   original by: Brett Zamir (http://brett-zamir.me)
+    // *     example 1: call_user_func('isNaN', 'a');
+    // *     returns 1: true
+    var func;
+     if (typeof cb == 'string') {
+        if (typeof this[cb] == 'function') {
+            func = this[cb];
+        } else {
+            func = (new Function(null, 'return ' + cb))();        }
+    } else if (cb instanceof Array) {
+        func = eval(cb[0]+"['"+cb[1]+"']");
+    }
+        if (typeof func != 'function') {
+        throw new Error(func + ' is not a valid function');
+    }
+
+    return func.apply(null, Array.prototype.slice.call(arguments, 1));
+};
+
+var sectorCheckboxFunc = function(checkbox) {
+	checkbox.checked = (checkbox.checked) ? false : true;
+};
+
+var updateCityControl = function(id) {
+
+	var selObj = $(id + "__PD");
+	if (selObj.value == "Other") {
+		$(id).removeClass("hidden");
+		selObj.addClass("hidden");
+		$(id).value = "";
+	} else {
+		$(id).addClass("hidden");
+		selObj.removeClass("hidden");
+		$(id).text = $(id).value = selObj.value;
+	}
+};
+
+/* This function is producing bugs when appended to a select that doesn't have
+ * a city dropdown */
+var updateCityControlByISOCountryCode = function(id, isoCode, state) {
+
+	var options = {
+		override_cache : true,
+		onComplete : function (obj) {
+			if (obj["html"] && $(id + "__Main")) {
+				var el = new Element('div');
+				el.set('html', obj["html"]);
+				el.replaces($(id + "__Main"));
+			}
+		}
+	};
+
+	var pdObj = $(id + "__PD");
+
+	var el = $(id);
+
+	var data = {
+		isoCode : isoCode,
+		State: state,
+		CityControlID : id,
+		name : el.name,
+		elementClass : pdObj && pdObj.get("class") ? pdObj.get("class") : '',
+		SelectOnChange: ($(id + "__onchange")) ? $(id + "__onchange").value : '',
+		ShowOtherOption: ($(id + "__showOtherOption")) ? $(id + "__showOtherOption").value : '',
+		style: ($(id + "__orginalStyles")) ? $(id + "__orginalStyles").value : '',
+		textStyle: ($(id + "__orginalTextStyles")) ? $(id + "__orginalTextStyles").value : '',
+		selected_option: el.value
+	};
+
+	API.request("/home/getCitiesByISOCountryCode/0", data, options);
+};
+
+/**
+ *
+ * This function returns the total months between 2 passed dates including the passed month
+ * ex if d1 = jan 2011 and d2 = march 2011 then it will return 3 months
+ *
+ * @author Reena Tripathi<rtripathi@guidepointglobal.com>
+ * @param d1 date having year and month
+ * @param d2 date having year and month
+ * @return total months
+ */
+var monthDiff = function(d1, d2) {
+	var months;
+	months = (d2.getFullYear() - d1.getFullYear()) * 12;
+	months -= d1.getMonth() ;
+	months += d2.getMonth() + 1;
+	return months;
+};
+
+// turns string into digits
+var toDigits = function (s) {
+   var s2 = "";
+   for (i = 0; i < s.length; i++) {
+       if (i>0) {
+          s2 += ",";
+       }
+       s2 += s.charCodeAt(i);
+   }
+   return s2;
+};
+
+//validating SSN/EIN
+var validateSSN = function (ssn) {
+	var pattern = /^\d{3}-\d{2}-\d{4}$/;
+	var pattern2 = /^\d{2}-\d{7}$/;
+	var SSNLen = ssn.length;
+	if ((ssn.match(pattern) && SSNLen == 11 ) || (ssn.match(pattern2) && SSNLen == 10 )) {
+		var ssntmp = ssn.replace(/[-]+/g, "");
+		var notAllow = ['123456789', '987654321', '012345678', '876543210'];
+		if (ssntmp.match(/^[0]{9}|[1]{9}|[2]{9}|[3]{9}|[4]{9}|[5]{9}|[6]{9}|[7]{9}|[8]{9}|[9]{9}$/)
+				|| ssn.match(/^[0]{3}-\d{2}-\d{4}$/)
+				|| ssn.match(/^\d{3}-[0]{2}-\d{4}$/)
+				|| ssn.match(/^\d{3}-\d{2}-[0]{4}$/)
+				|| ssn.match(/^[0]{2}-\d{7}$/)
+				|| ssn.match(/^\d{2}-[0]{7}$/)
+				|| notAllow.indexOf(ssntmp) != -1
+				) {
+
+				return false;
+			}
+		return true;
+	} else {
+	  return false;
+	}
+};
+
+function validateEIN(ssn) {
+	var pattern2 = /^\d{2}-\d{7}$/;
+	var SSNLen = ssn.length;
+	if ((ssn.match(pattern2) && SSNLen == 10 )) {
+		var ssntmp = ssn.replace(/[-]+/g, "");
+		var notAllow = ['123456789', '987654321', '012345678', '876543210'];
+		if (ssntmp.match(/^[0]{9}|[1]{9}|[2]{9}|[3]{9}|[4]{9}|[5]{9}|[6]{9}|[7]{9}|[8]{9}|[9]{9}$/)
+				|| ssn.match(/^[0]{3}-\d{2}-\d{4}$/)
+				|| ssn.match(/^\d{3}-[0]{2}-\d{4}$/)
+				|| ssn.match(/^\d{3}-\d{2}-[0]{4}$/)
+				|| ssn.match(/^[0]{2}-\d{7}$/)
+				|| ssn.match(/^\d{2}-[0]{7}$/)
+				|| notAllow.indexOf(ssntmp) != -1
+				) {
+
+				return false;
+			}
+		return true;
+	} else {
+	  return false;
+	}
+}
+
+/**
+ * Function to copy anchor link to clipboard
+ *
+ * @author Naveen Tummala <ntummala@guidepoint.com>
+ *
+ */
+function copyAnchorLink (linkID) {
+    var linkText = jQuery("#"+linkID).attr('href');
+    var $temp = jQuery("<input>");
+    jQuery("body").append($temp);
+    $temp.val(linkText).select();
+    document.execCommand("copy");
+    $temp.remove();
+    alert("Link Copied");
+}
+
+/* This function is used to update states dropdown based on selected country*/
+var updateStateByCountry = function(el, targetDropDownID, shortLabel, showabbreviation, exclStateLbl, isCIICForm = false) {
+    var country = el.value, elem = $(targetDropDownID);
+    var stateLabel = (typeof shortLabel == 'undefined') ? 'State (Required for United States)' : 'State';
+    showAbbreviation = (typeof showabbreviation !== 'undefined') ? showabbreviation : 0;
+    exclStateLbl     = (typeof exclStateLbl !== 'undefined') ? exclStateLbl : false;
+    if (!exclStateLbl) {
+        if (country == 'CHN') {
+			if (isCIICForm == true && jQuery('#PaymentMethodTypeID').val() == paymentMethodTypeIdDirectDeposit
+					&& jQuery('#BankCountry').val() == 'CHN'
+					&&  jQuery('#AccountOwnershipTypeID').val() == accountOwnershipTypeIdIndividual
+					&& jQuery('#CurrencyID').val() == CHINESE_YUAN_CURRENCY_ID && !window.globals.ciicpaymentsDisabled
+			) {
+				$(targetDropDownID+'_label').set('html','Province/çœä»½');
+			} else {
+				$(targetDropDownID+'_label').set('html','Province');
+			}
+        } else {
+            $(targetDropDownID+'_label').set('html', stateLabel);
+        }
+    }
+    elem.empty();
+    elem.add(new Option('',''));
+    if (country != 'USA' && country != 'CHN') {
+        elem.value='';
+        return;
+    }
+    var options = {
+            onComplete : function (obj) {
+                obj = JSON.parse(obj);
+                if (obj.length) {
+                    for(var i=0; i < obj.length; i++) {
+                        var stateValue = (showAbbreviation && country == 'USA') ? 'Abbreviation' : 'Name';
+                        elem.add(new Option(obj[i][stateValue],obj[i]['Abbreviation']));
+                    }
+                }
+            }
+    };
+    API.request("/home/getStatesByCountry/0", {country : country}, options);
+};
+
+function toggleCorporationName(ssn) {
+	if ($("CorporationName_edit")) {
+        if (!$("CorporationName_edit").hasClass("displayNone")) {
+            $("CorporationName_edit").addClass("displayNone");
+        }
+        if (validateEIN(ssn)) {
+            $("CorporationName_edit").removeClass("displayNone");
+        } else {
+            $("CorporationName_edit").addClass("displayNone");
+        }
+    }
+}
+function validateAdditionalData() {
+	var isValidated = true;
+    var additionalDataChanged = [], invalidOptionsCount = 0, invalidCustomLabelCount = 0, additionalDataAdded = false;
+	jQuery('select[name^="additionalDatafield"]').each(function (index, object){
+		var fieldNo = parseInt(object.id.split('_').pop());
+		var dropDownInput = jQuery("#additionalDatafield_keyDD_"+fieldNo);
+		var inputLabel = jQuery("#additionalDatafield_keyText_"+fieldNo);
+		var inputValueObj = jQuery("#additionalDatafield_value_"+fieldNo);
+		var inputValue = jQuery.trim(inputValueObj.val());
+		if (inputValueObj.data('original-value-changed') || inputValue == '') {
+			var inputLabelText = '';
+			 if (inputLabel.is(':visible')) {
+				if (jQuery.trim(inputLabel.val())) {
+					inputLabelText = jQuery.trim(inputLabel.val());
+					additionalDataAdded = true;
+				} else if (inputValue) {
+					MessageAPI.addErrorMessage(inputLabel.attr('id'), "");
+					isValidated = false;
+					invalidCustomLabelCount++;
+					additionalDataAdded = true;
+				}
+			}
+			if (inputLabelText) {
+				inputLabelText = inputLabelText ? inputLabelText : 'value';
+				if (inputValue == '') {
+					MessageAPI.addErrorMessage(inputValueObj.attr('id'), "Missing required "+inputLabelText);
+					isValidated = false;
+				}
+			}
+			if (inputValue) {
+				if (inputLabelText == '') {
+					MessageAPI.addErrorMessage(inputValueObj.attr('id'), "Missing required Label for "+inputValue);
+					isValidated = false;
+				}
+			}
+			if (isValidated && jQuery("#additionalDatafield_ID_"+fieldNo)) {
+				additionalDataChanged.push(jQuery("#additionalDatafield_ID_"+fieldNo).val());
+			}
+		} else if (inputValue) {
+			inputLabelText = jQuery.trim(inputLabel.val());
+			if (inputLabelText == '') {
+				MessageAPI.addErrorMessage(inputValueObj.attr('id'), "Missing required Label for "+inputValue);
+				isValidated = false;
+			}
+			additionalDataAdded = true;
+		}
+		jQuery("#additionalDataChangedKeys").val(additionalDataChanged.join(','));
+	});
+    return isValidated;
+};
+
+function localStorageSupported () {
+   return ('localStorage' in window) && window['localStorage'] !== null;
+}
+
+// Bootstrap Alert Message, alertType <success, info, warning, danger>
+var bootstrapAlert = function(message, alertType, injectAdjacentElement) {
+
+	if (alertType == '') {
+		alertType = 'danger';
+	}
+	if (injectAdjacentElement == '') {
+		injectAdjacentElement = 'mainContent';
+	}
+	var bootstrapAlertDiv = new Element('div', { id	   : 'bootstrapAlertDiv_' + $random(1, 100),
+												'class': 'alert alert-' + alertType,
+												'role' : 'alert'}
+	);
+	bootstrapAlertDiv.set('html', message);
+	bootstrapAlertDiv.inject(injectAdjacentElement, 'before');
+	return bootstrapAlertDiv.get('id');
+}
+
+function getUrlVars() {
+    var vars = {};
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+        vars[key] = value;
+    });
+    return vars;
+
+}
+Array.implement({
+
+	/**
+	 * Creates an intersection of the current array and the given one.
+	 * Returns as new array.
+	 * @param Array other	the array to use
+	 * @return Array
+	 */
+	intersect: function(other) {
+		var cpy = this.slice();
+		this.each(function(el) {
+			if (other.indexOf(el) < 0) {
+				cpy.splice(cpy.indexOf(el), 1);
+			}
+		}, this);
+		return cpy;
+	},
+
+	/**
+	 * Returns the symmetric difference between this array and the given one.
+	 * Means the items both arrays include are removed from both and then both are combined.
+	 * @param Array other	the array to use
+	 * @return Array
+	 */
+	differentiate: function(other) {
+		var src = this.slice();
+		var cmp = other.slice();
+		other.each(function(elem) {
+			if (src.indexOf(elem) > -1) {
+				// remove from both
+				src.splice(src.indexOf(elem), 1);
+				cmp.splice(cmp.indexOf(elem), 1);
+			}
+		}, this);
+		// combine remaining items
+		return src.combine(cmp);
+	},
+
+	/**
+	 * Returns the given number of elements from the array starting
+	 * at the given index.
+	 * @param int start index
+	 * @param int number of elements to return - if not given all elements from start index will be returned
+	 * @return Array
+	 */
+	getRange: function(start, elements) {
+		var res = [];
+		var j = 0;
+		// check if no element count is given
+		var upper = this.length;
+		if (undefined != elements) {
+			var upper = start + elements > this.length ? this.length : start + elements;
+		}
+		if (start >= 0) {
+			for (var i = start; i < upper; i++) {
+				res[j++] = this[i];
+			}
+		}
+		return res;
+	},
+
+	/**
+	 * Returns the array as array in reverse order.
+	 * @return Array
+	 */
+	reverse: function() {
+		var reversed = [];
+		for (var i = this.length - 1; i >= 0; i--) {
+			reversed.push(this[i]);
+		}
+		return reversed;
+	}
+});
+
+// func to support the encoding the non-ASCII chars to be converted to html entities
+var convertToHtmlEntitiesNonAsciiChars = function (string){
+      var i = string.length,
+          result = [];
+
+      while (i--) {
+        var iC = string[i].charCodeAt();
+        if (iC >= 255 ) {
+          result[i] = '&#'+iC+';';
+        } else if (iC === 65279) {
+            result[i] = '';
+        } else {
+          result[i] = string[i];
+        }
+       }
+      return result.join('');
+    };
+
+var isWholeIntegerKey = function(evt){
+    var charCode = (evt.which) ? evt.which : evt.keyCode;
+    if (charCode > 31 && (charCode < 48 || charCode > 57))
+        return false;
+    return true;
+};
+
+// func to find and return object from array of objects by Key's Value
+// ex:  var obj = findObjectByKey(objArray, 'id', 3);
+var findObjectByKey = function (array, key, value) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i][key] === value) {
+            return  array[i];
+        }
+    }
+    return null;
+}
+
+// func to find and return index value of object from array of objects by Key's Value
+// ex:  var obj = findObjectByKey(objArray, 'id', 3);
+var findIndexOfObjectByKey = function (array, key, value) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i][key] === value) {
+            return i;
+        }
+    }
+    return null;
+}
+
+var mousePositionX = 0, mousePositionY = 0;
+
+
+// Hard Code client org ID for Jazz Pharma #1808
+var CLIENT_ORG_ID_FOR_JAZZ_PHARMA = 1808;
+
+//Hard Code client org ID for Merck Consumer care #1847
+var CLIENT_ORG_ID_FOR_MERCK = 1847;
+
+//Hard Code client org ID for ResMed Inc. #1581
+var CLIENT_ORG_ID_FOR_RESMED = 1581;
+
+//Hard Code client org ID for Becton Dickinson #1660
+var CLIENT_ORG_ID_FOR_BECTONDICKINSON = 1660;
+
+//Hard Code client org ID for Onyx Pharmaceuticals #1882
+var CLIENT_ORG_ID_FOR_ONYX = 1882;
+
+//Hard Code client org ID for AstraZenecaUS #1799
+var CLIENT_ORG_ID_FOR_ASTRAZENECAUS = 1799;
+
+//Hard Code client org ID for BD Diagnostics, Diagnostics Systems #1933
+var CLIENT_ORG_ID_FOR_BD_DIAGNOSTIC = 1933;
+// BD Corporate Strategic Innovations Group #1934
+var CLIENT_ORG_ID_FOR_BD_CORPSTRATEGIC = 1934;
+//BD Technologies #1935
+var CLIENT_ORG_ID_FOR_BD_TECHNOLOGIES = 1935;
+//BD Medical, Medical Surgical Systems #1936
+var CLIENT_ORG_ID_FOR_BD_MEDICAL_SURGICAL = 1936;
+//BD Pharmaceutical Systems #1937
+var CLIENT_ORG_ID_FOR_BD_PHARMA = 1937;
+//BD Diagnostics, Preanalytical Systems #1938
+var CLIENT_ORG_ID_FOR_BD_DIAGNOSTIC_PREANALYTICAL = 1938;
+//BD Medication Management Solutions #3109
+var CLIENT_ORG_ID_FOR_BD_MEDICATION_MANAGEMENT_SOLUTIONS = 3109;
+
+var contractsWithPricePerUnit = {
+	8:'Pay as you go',
+	10:'Trial Agreement - PAYG',
+	4:'Sub: Network',
+	6:'Sub: Tracker',
+	5:'Sub: Network + Tracker',
+	7:'Trial Agreement',
+        12:'Tracking Only',
+        17:'Tracking-SOS',
+        18:'Tracking-Usage',
+	3:'SOW/SOS',
+	11:'SOW/SOS - PAY G',
+	13:'Modular',
+	14:'Sub: Network + PAYG',
+	15:'SOW/SOS - Project Base',
+    19:'Sub: Insights',
+	20: 'SOW/SOS + PAY G'
+}
+
+var contractsWithAccountingPricePerUnit = {
+		8:'Pay as you go',
+		10:'Trial Agreement - PAYG',
+		4:'Sub: Network',
+		6:'Sub: Tracker',
+		5:'Sub: Network + Tracker',
+		7:'Trial Agreement',
+		3:'SOW/SOS',
+		11:'SOW/SOS - PAY G',
+                12:'Tracking Only',
+                17:'Tracking-SOS',
+                18:'Tracking-Usage',
+		13:'Modular',
+		14:'Sub: Network + PAYG',
+		15:'SOW/SOS - Project Base',
+        19:'Sub: Insights',
+		20: 'SOW/SOS + PAY G'
+	}
+var contractsWithSOWSOS = {
+  3:'SOW/SOS',
+  11:'SOW/SOS - PAY G' ,
+  15:'SOW/SOS - Project Base',
+  20: 'SOW/SOS + PAY G'
+};
+
+var LS_MASTERLIST = 17
+var LS_EXPERT_WITNESS_VETTING_SEARCH = 18
+var LS_EXPERT_WITNESS_RETENTION = 19
+var LS_REGULAR_PHONE_CONSULTATION = 20
+var LS_REGULAR_PHONE_CONSULTATION_ANONYMOUS = 21
+var LS_FOLLOW_UP_PHONE_CONSULTATION = 22
+var LS_WRITTEN_FOLLOW_UP = 23
+var LS_SURVEYS = 24
+var LS_IN_PERSON_MEETING_ONE_ON_ONE = 25
+var LS_CASE_MERIT_ANALYSIS = 26
+var LS_MEDICAL_EVENT_CHRONOLOGY = 27
+var LS_CLINICIANS_ON_CALL = 28
+var LS_EXPERT_WITNESS_REVIEW_AND_CHALLENGE = 29
+var lsRequestTypes = {};
+lsRequestTypes[LS_MASTERLIST] = 'LS - Masterlist';
+lsRequestTypes[LS_EXPERT_WITNESS_VETTING_SEARCH] = 'LS - Expert Witness Vetting Search';
+lsRequestTypes[LS_EXPERT_WITNESS_RETENTION] = 'LS - Expert Witness Retention';
+lsRequestTypes[LS_REGULAR_PHONE_CONSULTATION] = 'LS - Regular Phone Consultation';
+lsRequestTypes[LS_REGULAR_PHONE_CONSULTATION_ANONYMOUS] = 'LS - Regular Phone Consultation - Anonymous';
+lsRequestTypes[LS_FOLLOW_UP_PHONE_CONSULTATION] = 'LS - Follow Up Phone Consultation';
+lsRequestTypes[LS_WRITTEN_FOLLOW_UP] = 'LS - Written Follow Up';
+lsRequestTypes[LS_SURVEYS] = 'LS - Surveys';
+lsRequestTypes[LS_IN_PERSON_MEETING_ONE_ON_ONE] = 'LS - In Person Meeting - One on One';
+lsRequestTypes[LS_CASE_MERIT_ANALYSIS] = 'LS - Case Merit Analysis';
+lsRequestTypes[LS_MEDICAL_EVENT_CHRONOLOGY] = 'LS - Medical Event Chronology';
+lsRequestTypes[LS_CLINICIANS_ON_CALL] = 'LS - Clinicians on Call';
+lsRequestTypes[LS_EXPERT_WITNESS_REVIEW_AND_CHALLENGE] = 'LS - Expert Witness Review and Challenge';
+var MODERATOR_REQUEST = 32;
+
+var isLegalServicesRequest = function (value, checkTypeText) {
+    var checkTypeText = (typeof checkTypeText != 'undefined') ? checkTypeText : false;
+    var requestTypes = checkTypeText ? Object.values(lsRequestTypes).join('|') : Object.keys(lsRequestTypes).join('|');
+    if (new RegExp('^' + requestTypes + '$').test(value)) {
+        return true;
+    }
+    return false;
+};
+
+//BD Diabetes Care #1950
+var CLIENT_ORG_ID_FOR_BD_DIABETES_CARE = 1950;
+//BD Global Health Division #1977
+var CLIENT_ORG_ID_FOR_BD_GLOBAL_HEALTH_DIVISION = 1977;
+//BD BD Medical, Surgical Systems 2 #2079
+var CLIENT_ORG_ID_FOR_BD_SURGICAL_SYSTEMS2 = 2079;
+
+//Forest Allergan #604
+var CLIENT_ORG_ID_FOR_FOREST = 604;
+//Gilead Sciences #639
+var CLIENT_ORG_ID_FOR_GILEAD_SCIENCES = 639;
+
+//Covidien #1426
+var CLIENT_ORG_ID_FOR_COVIDIEN = 1426;
+
+//Covidien Surgical Solutions #1926
+var CLIENT_ORG_ID_FOR_COVIDIEN_SURGICAL_SOLUTIONS = 1926;
+
+//Jude Medicals #523
+var CLIENT_ORG_ID_FOR_JUDE_MEDICAL = 523;
+
+//Emergent #1573
+var CLIENT_ORG_ID_FOR_EMERGENT = 2250;
+
+//Mitra Biotech #2758
+var CLIENT_ORG_ID_FOR_MITRA_BIOTECH = 2758;
+
+//Takeda #2692
+var CLIENT_ORG_ID_FOR_TAKEDA = 2692;
+
+//Takeda #2811
+var CLIENT_ORG_ID_FOR_TAKEDA_RESEARCH = 2811;
+
+//Takeda #3405
+var CLIENT_ORG_ID_FOR_TAKEDA_CHILDORG = 3405;
+
+//Bio Marine Pharma #2994
+var CLIENT_ORG_ID_FOR_BMPHARMA = 2994;
+
+//Hardcoded RequestTypeID's
+var REGULAR_PHONE_CONSULTATION = 1;
+var FOLLOW_UP_PHONE_CONSULTATION = 2;
+var EVENT_SCREENING = 3;
+var IN_PERSON_MEETING_ONE_ON_ONE = 4;
+var RECRUITING_REQUEST = 5;
+var SELLSIDE_TELECONFERENCE = 6;
+var SURVEY_REQUEST = 7;
+var TRACKER_REQUEST = 8;
+var QUICK_POLL = 9;
+var IN_PERSON_MEETING_GROUP = 10;
+var VETTING_CALLS = 11;
+
+// Legal Solutions Request Type IDs
+var LEGAL_SOLUTIONS_REQUEST_TYPE_ID_WITNESS_VETTING = 18;
+var LEGAL_SOLUTIONS_REQUEST_TYPE_ID_WITNESS_RETENTION = 19;
+var LEGAL_SOLUTIONS_REQUEST_TYPES_ALL = [17,18,19,20,21,22,23,24,25,26,27,28,29];
+
+// Legal Solutions Template IDs -> To Advisor
+var LEGAL_SOLUTIONS_TEMPLATE_ID_ACCEPT_DECLINE = 205;
+var LEGAL_SOLUTIONS_TEMPLATE_ID_ADVISOR_CONSULTATION = 206;
+
+var CLIENT_POLICY_ACK_EMAIL_TEMPLATE_ID = 180;
+var LEGAL_SOLUTIONS_TEMPLATE_ID = 203;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_TEMPLATE_ID = 187;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_JAPANESE_TEMPLATE_ID = 244;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_KOREAN_TEMPLATE_ID = 245;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_CHINESE_TEMPLATE_ID = 246;
+var CONSULTATION_REQUEST_PM_ADVISOR_LS_ACCEPT_DECLINE_TEMPLATE_ID = 211;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_PORTUGUESE_TEMPLATE_ID = 251;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_SPANISH_TEMPLATE_ID = 252;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_GERMAN_TEMPLATE_ID = 254;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_FRENCH_TEMPLATE_ID = 255;
+var CONSULTATION_REQUEST_PM_ADVISOR_ACCEPT_DECLINE_ITALIAN_TEMPLATE_ID = 256;
+var EXPIRED_SOW_OR_DORMANT = 10;
+
+// Advisor Max Rate for JS files
+var ADVISOR_MAX_RATE = 2500;
+var PM_ADVISOR_MAX_RATE = 5000;
+var PM_ADVISOR_MAX_RATE_LS = 9999; // legal solutions
+
+//Hardcoded Organization Type
+var CORPORATE_CLIENT_ORG_TYPE = 11; 	// corporate organization type
+var CONSULTING_CLIENT_ORG_TYPE = 12; 	// consulting organization type
+var MARKET_RESEARCH_CLIENT_ORG_TYPE = 15;
+var SELL_SIDE_CLIENT_ORG_TYPE = 13;		// sellside orgazition type
+
+//Hard Code client org ID for UBS Global Asset Management #222
+var CLIENT_ORG_ID_FOR_UBS_GLOBAL = 222;
+
+// Chines Yuan Currency ID
+var CHINESE_YUAN_CURRENCY_ID = 25;
+
+var recordingEnabledClientOrgTypes = [11, 12];
+var showCallRecordingPopupMessage = function() {
+		Popups.alertPopup('<div style="overflow-y: auto; text-align: left;">Please remember to add the following Call Recording Screener at Request Level with a "no" response being a disqualifier: <br/><br/>"Our client has advised Guidepoint that this call may be recorded and/or transcribed. You will have no access to, or control over any such recording and/or transcription, including the client\'s usage of such recording or transcript. Do you consent to this call being recorded and transcribed?"</div>', {
+			alertBoxHeight: '100',
+			htmlMode: true
+		});
+}
+
+var VIRTUAL_ADVISORY_BOARD = 30;
+var PROPOSAL_SUPPORT_REQUEST = 31;
+function toggletaxclassificationInput ()
+{
+	var taxClassification = $$('input[name=taxclassification]:checked').getSelectedValue();
+	if (taxClassification == 'LLC')	{
+		$('LLC_extra').disabled = false;
+		$('Other_extra').value = "";
+		$('Other_extra').disabled = true;
+	} else if (taxClassification == 'Other'){
+		$('LLC_extra').disabled = true;
+		$('LLC_extra').value = "";
+		$('Other_extra').disabled = false;
+	} else {
+		$('LLC_extra').value = "";
+		$('Other_extra').value = "";
+		$('LLC_extra').disabled = $('Other_extra').disabled = true;
+	}
+}
+function validateExcemptionCode()
+{
+	MessageAPI.removeErrorMessage("fATCAReportingCode");
+	var chars = /^[A-M]+$/;
+	code = $("fATCAReportingCode").value;
+	if(code != '') {
+		if (code.match(chars)) {
+			MessageAPI.removeErrorMessage("fATCAReportingCode");
+			return true;
+		} else {
+			MessageAPI.addErrorMessage("fATCAReportingCode", "Please provide A to M only");
+			return false;
+		}
+	}
+	return true;
+}
+function validateExcemptionPayeeCode()
+{
+	MessageAPI.removeErrorMessage("payeeCode");
+	var numbers = /^[0-9]+$/;
+	payeeCode = $("payeeCode").value;
+	if (payeeCode != '' && !payeeCode.match(numbers)) {
+		MessageAPI.addErrorMessage("payeeCode", "Please provide numeric characters only");
+		return false;
+	}
+
+	var allowedPayeeCodes = [];
+	for (var i = 1; i <= 13; i++) {
+	   allowedPayeeCodes.push(i);
+	}
+	var numberExist = false;
+	if(payeeCode != '') {
+		for (var i = 0; i < allowedPayeeCodes.length; i++) {
+			if (payeeCode == allowedPayeeCodes[i]) {
+			  numberExist = true;
+			  break;
+			}
+		}
+	} else {
+		numberExist = true;
+	}
+	if(!numberExist) {
+		MessageAPI.addErrorMessage("payeeCode", "Please provide 1 to 13 only");
+		return false;
+	} else {
+		MessageAPI.removeErrorMessage("payeeCode");
+		return true;
+	}
+}
+function focusnext(obj, id, toggleid) {
+	var numbers = /^[0-9]+$/;
+	if (obj.value.match(numbers)) {
+		$(id).focus();
+		toggleSSNorEIN(toggleid);
+	} else {
+		obj.value = "";
+		//alert('Please input numeric characters only');
+	}
+}
+function toggleSSNorEIN(id) {
+	for (var i = 1; i <= 9; i++) {
+		if($(id+i)) {
+			$(id+i).value = '';
+		}
+	}
+}
+function validateSSNOrEIN()
+{
+	MessageAPI.removeErrorMessage("ssnDiv");
+	MessageAPI.removeErrorMessage("einDiv");
+	MessageAPI.removeErrorMessage("tinDiv");
+	ssnValue = $('ssn1').value+$('ssn2').value+$('ssn3').value+"-"+$('ssn4').value+$('ssn5').value+"-"+$('ssn6').value+$('ssn7').value+$('ssn8').value+$('ssn9').value;
+	einValue = $('ein1').value+$('ein2').value+"-"+$('ein3').value+$('ein4').value+$('ein5').value+$('ein6').value+$('ein7').value+$('ein8').value+$('ein9').value;
+	if (ssnValue == '--' && einValue == '-') {
+		MessageAPI.addErrorMessage("tinDiv", "Please provide Taxpayer Identification Number");
+		return false;
+	} else if(ssnValue != '--') {
+		if (!validateSSN(ssnValue)) {
+			MessageAPI.addErrorMessage("ssnDiv", "Please provide valid Social security number");
+			return false;
+		}
+	} else if(einValue != '-') {
+		if (!validateEIN(einValue)) {
+			MessageAPI.addErrorMessage("einDiv", "Please provide valid Employer identification number");
+			return false;
+		}
+	}
+	return true;
+}
+function hasOnlyChineseChars(val) {
+	var reg = /[^\u4E00-\u9FFF\u3400-\u4DFF\uF900-\uFAFF]+/g;
+	return !val.match(reg);
+}
+
+Array.implement({
+    getSelectedValue: function() {
+	if(this.length == 0) {
+            return null;
+        }
+        return this[0].value;
+    }
+});
+
+
+function isValidDOB(formatedDate)
+{
+	if(formatedDate == "") {
+        return false;
+	}
+
+    var rxDatePattern = /^(\d{4})(-)(\d{1,2})(-)(\d{1,2})$/;
+    var dtArray = formatedDate.match(rxDatePattern);
+
+    if (dtArray == null) {
+        return false;
+	}
+
+    //Checks for yyyy/mm/dd format.
+	dtYear = dtArray[1];
+    dtMonth = dtArray[3];
+    dtDay= dtArray[5];
+
+	if (isNaN(dtYear) || isNaN(dtMonth) || isNaN(dtDay)) {
+		return false;
+	}
+
+    if (dtMonth < 1 || dtMonth > 12) {
+        return false;
+    } else if (dtDay < 1 || dtDay> 31) {
+        return false;
+    } else if ((dtMonth == 4 || dtMonth == 6 || dtMonth == 9 || dtMonth == 11) && dtDay == 31) {
+        return false;
+    } else if (dtMonth == 2) {
+        var isleap = (dtYear % 4 == 0 && (dtYear % 100 != 0 || dtYear % 400 == 0));
+        if (dtDay > 29 || (dtDay == 29 && !isleap)) {
+                return false;
+		}
+    }
+    return true;
+}
+
+/**
+ * converting string representation of boolean value into boolean
+ * cases "false" -> false, "no" -> false, "0" -> false, "n" -> false
+ * @param: string | null
+ * @return: boolean 
+*/
+
+function convertStrToBool(val){
+	return !(/^(false|0|no|n)$/i).test(val) && !!val;
+}
